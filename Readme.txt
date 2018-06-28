@@ -15,5 +15,11 @@ To deploy:
 - create a docker image with docker build -t botnet-worker .
 - start the image with docker run -e PYTHONUNBUFFERED=0 botnet-worker
 
-Bots can be controlled from the rabbitMQ console using the exchange called "command_broadcast"
 
+To deploy using docker remote image (here the link: https://hub.docker.com/r/blubecks/botnet_worker/):
+- docker run -e PYTHONUNBUFFERED=0 -e PWD="..." blubecks/botnet_worker
+
+You can pass different user and host using USER and HOST env variables.
+
+
+Bots can be controlled from the rabbitMQ console using the exchange called "command_broadcast"
