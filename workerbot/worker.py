@@ -27,27 +27,37 @@ channel = connection.channel()
 
 
 
+def publish_message(message):
+    print(message)
+    channel.basic_publish(exchange='', routing_key="status_report", body=message)
 
-def do_status(com=[]):
-    global running_jobs
-    global current_status
 
-    print ("status is %s" % current_status)
-    for job in running_jobs:
-        print(job)
-
-def do_spawn_subprocesses(command, count=1):
+def spawn_subprocesses(command, count=1):
     global running_jobs
     global current_status
     
     if current_status == 'IDLE':
-        print("going to run %d instances of command [%s]" % (count, command))
+        message = "going to run %d instances of command [%s]" % (count, command)
+        publish_message(message)
+        
         current_status = 'STARTING'
         for i in range(count):
             running_jobs.append("job %d" % i)
         current_status = 'STARTED'
     else:
-        print ("worker status is %s. Cannot start new jobs" % current_status)
+        message = "worker status is %s. Cannot start new jobs" % current_status
+        publish_message(message)
+
+
+
+def do_status(com=[]):
+    global running_jobs
+    global current_status
+
+    publish_message ("status is %s" % current_status)
+    for job in running_jobs:
+        print(job)
+
 
 def do_unleash(com=[]):
     syntaxerror = True
@@ -73,21 +83,26 @@ def do_unleash(com=[]):
 
                        commandline="ffmpeg -i %s > /dev/null 2>&1" % ffmpeg_url
 
-                       do_spawn_subprocesses(commandline, client_num)
+                       spawn_subprocesses(commandline, client_num)
                        
 
     if syntaxerror:
-        print ("usage: unleash <wowza> <server> <application> <streamname> [number_of_streams_to_open] [application_instance]")
+        publish_message ("usage: unleash <wowza> <server> <application> <streamname> [number_of_streams_to_open] [application_instance]")
 
 def do_stop(com=[]):
     global running_jobs
     global current_status
 
     current_status = 'STOPPING'
+    message = ""
     for i in range(len(running_jobs)):
         job=running_jobs.pop()
-        print ("stopping [%s]" % job)
+        message = message + "stopping [%s]\n" % job
     current_status = 'IDLE'
+    publish_message(message)
+
+
+
 
 
 
@@ -117,9 +132,9 @@ def callback(ch, method, properties, body):
             allowed_commands[command](command_arr)
             
         else:
-            print ("unrecognized command [%s]\nallowed commands %s" % (command, list(allowed_commands.keys())))
+            publish_message ("unrecognized command [%s]\nallowed commands %s" % (command, list(allowed_commands.keys())))
     else:
-        print ("nothing to do...\nallowed commands %s" % list(allowed_commands.keys()))
+        publish_message ("nothing to do...\nallowed commands %s" % list(allowed_commands.keys()))
 
 
 
