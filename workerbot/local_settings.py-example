@@ -2,5 +2,3 @@
 
 rabbit_host = 'rabbitmq.example.com'
 rabbit_user = 'bot_user'
-rabbit_pw = 'secretpassword'
-

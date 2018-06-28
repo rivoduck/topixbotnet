@@ -1,19 +1,38 @@
 import pika
 import subprocess
+import os
 
-
-from local_settings import *
 
 exch_command_broadcast = "command_broadcast"
 queue_status_report = "status_report"
 
-
-
-
-
-
 running_jobs = []
 current_status = 'IDLE'
+
+try:
+    rabbit_pw = os.environ['PWD']
+except KeyError:
+    print ("Password is a mandatory field.")
+    exit(-1)
+
+try:
+    from local_settings import rabbit_user
+except ImportError:
+    try:
+        rabbit_user = os.environ['USER']
+    except KeyError:
+        print ("User is a mandatory field.")
+        exit(-1)
+
+try:
+    from local_settings import rabbit_host
+except ImportError:
+    try:
+        rabbit_host = os.environ['HOST']
+    except KeyError:
+        print ("Host is a mandatory field.")
+        exit(-1)
+
 
 credentials = pika.PlainCredentials(rabbit_user, rabbit_pw)
 parameters = pika.ConnectionParameters(rabbit_host,
@@ -38,9 +57,11 @@ def publish_message(message):
 def spawn_subprocesses(commandarray, count=1):
     global running_jobs
     global current_status
-    
+
     if current_status == 'IDLE':
-        
+        message = "going to run %d instances of command [%s]" % (count, command)
+        publish_message(message)
+
         current_status = 'STARTING'
         for i in range(count):
             # running_jobs.append("job %d" % i)
@@ -132,29 +153,29 @@ def do_stop(com=[]):
 
 
 def callback(ch, method, properties, body):
-    
+
     allowed_commands = {
         "unleash": do_unleash,
         "stop": do_stop,
         "status": do_status,
-        
+
     }
-    
-    
-    
+
+
+
     body = body.decode("utf-8")
     # print(" [x] Received %r" % body)
     command_arr = body.split()
-    
+
     # interpret command
     if len(command_arr)>0:
         command = command_arr.pop(0)
 
 
-        
+
         if command in allowed_commands:
             allowed_commands[command](command_arr)
-            
+
         else:
             publish_message ("unrecognized command [%s]\nallowed commands %s" % (command, list(allowed_commands.keys())))
     else:
@@ -175,4 +196,3 @@ channel.basic_consume(callback, queue=broadcast_queue_name, no_ack=True)
 
 print(' [*] Waiting for messages. To exit press CTRL+C')
 channel.start_consuming()
-
