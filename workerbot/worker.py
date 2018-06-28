@@ -13,6 +13,7 @@ queue_status_report = "status_report"
 
 
 running_jobs = []
+current_status = 'IDLE'
 
 credentials = pika.PlainCredentials(rabbit_user, rabbit_pw)
 parameters = pika.ConnectionParameters(rabbit_host,
@@ -27,13 +28,28 @@ channel = connection.channel()
 
 
 
+def do_status(com=[]):
+    global running_jobs
+    global current_status
+
+    print ("status is %s" % current_status)
+    for job in running_jobs:
+        print(job)
 
 def do_spawn_subprocesses(command, count=1):
-    print("going to run %d instances of command [%s]" % (count, command))
-    for i in range(count):
-        running_jobs.append("job %d" % i)
+    global running_jobs
+    global current_status
+    
+    if current_status == 'IDLE':
+        print("going to run %d instances of command [%s]" % (count, command))
+        current_status = 'STARTING'
+        for i in range(count):
+            running_jobs.append("job %d" % i)
+        current_status = 'STARTED'
+    else:
+        print ("worker status is %s. Cannot start new jobs" % current_status)
 
-def do_unleash(com):
+def do_unleash(com=[]):
     syntaxerror = True
     arg=None
     if len(com)>0:
@@ -63,38 +79,47 @@ def do_unleash(com):
     if syntaxerror:
         print ("usage: unleash <wowza> <server> <application> <streamname> [number_of_streams_to_open] [application_instance]")
 
-def do_stop(com):
+def do_stop(com=[]):
+    global running_jobs
+    global current_status
+
+    current_status = 'STOPPING'
     for i in range(len(running_jobs)):
         job=running_jobs.pop()
         print ("stopping [%s]" % job)
+    current_status = 'IDLE'
 
-def do_statusreport(com):
-    for job in running_jobs:
-        print(job)
+
 
 
 def callback(ch, method, properties, body):
+    
+    allowed_commands = {
+        "unleash": do_unleash,
+        "stop": do_stop,
+        "status": do_status,
+        
+    }
+    
+    
+    
     body = body.decode("utf-8")
-    print(" [x] Received %r" % body)
+    # print(" [x] Received %r" % body)
     command_arr = body.split()
     
     # interpret command
     if len(command_arr)>0:
         command = command_arr.pop(0)
 
-        if command == "unleash":
-            do_unleash(command_arr)
 
-        elif command == "stop":
-            do_stop(command_arr)
-
-        elif command == "status":
-            do_statusreport(command_arr)
-
+        
+        if command in allowed_commands:
+            allowed_commands[command](command_arr)
+            
         else:
-            print ("unrecognized command [%s]" % command)
+            print ("unrecognized command [%s]\nallowed commands %s" % (command, list(allowed_commands.keys())))
     else:
-        print ("nothing to do...")
+        print ("nothing to do...\nallowed commands %s" % list(allowed_commands.keys()))
 
 
 
