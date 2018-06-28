@@ -2,7 +2,6 @@ import pika
 import subprocess
 import os
 
-from local_settings import *
 
 exch_command_broadcast = "command_broadcast"
 queue_status_report = "status_report"
@@ -15,6 +14,25 @@ try:
 except KeyError:
     print ("Password is a mandatory field.")
     exit(-1)
+
+try:
+    from local_settings import rabbit_user
+except ImportError:
+    try:
+        rabbit_user = os.environ['USER']
+    except KeyError:
+        print ("User is a mandatory field.")
+        exit(-1)
+
+try:
+    from local_settings import rabbit_host
+except ImportError:
+    try:
+        rabbit_host = os.environ['HOST']
+    except KeyError:
+        print ("Host is a mandatory field.")
+        exit(-1)
+
 
 credentials = pika.PlainCredentials(rabbit_user, rabbit_pw)
 parameters = pika.ConnectionParameters(rabbit_host,
