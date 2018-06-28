@@ -11,6 +11,9 @@ docker run -d --hostname botnet-rabbitmq --name botnet-rabbitmq -p 127.0.0.1:808
 To deploy:
 - copy the file workerbot/local_settings.py-example into workerbot/local_settings.py
 - edit workerbot/local_settings.py with the address of your rabbitMQ installation and credentials
+- cd workerbot/
+- create a docker image with docker build -t botnet-worker .
+- start the image with docker run -e PYTHONUNBUFFERED=0 botnet-worker
 
 Bots can be controlled from the rabbitMQ console using the exchange called "command_broadcast"
 
