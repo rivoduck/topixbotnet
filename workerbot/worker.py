@@ -32,18 +32,26 @@ def publish_message(message):
     channel.basic_publish(exchange='', routing_key="status_report", body=message)
 
 
-def spawn_subprocesses(command, count=1):
+# spawn subprocesses directly without shell
+# output redirection is done in the function,
+# do no use ">" or other output redirections in the command!!
+def spawn_subprocesses(commandarray, count=1):
     global running_jobs
     global current_status
     
     if current_status == 'IDLE':
-        message = "going to run %d instances of command [%s]" % (count, command)
-        publish_message(message)
         
         current_status = 'STARTING'
         for i in range(count):
-            running_jobs.append("job %d" % i)
+            # running_jobs.append("job %d" % i)
+            
+            process = subprocess.Popen(commandarray, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            running_jobs.append(str(process.pid))
+            
         current_status = 'STARTED'
+        message = "started %d instances of command [%s], PIDs [%s]" % ( count, " ".join(commandarray), ",".join(running_jobs) )
+        publish_message(message)
     else:
         message = "worker status is %s. Cannot start new jobs" % current_status
         publish_message(message)
@@ -54,9 +62,8 @@ def do_status(com=[]):
     global running_jobs
     global current_status
 
-    publish_message ("status is %s" % current_status)
-    for job in running_jobs:
-        print(job)
+    publish_message ("status is %s, %d jobs running" % (current_status, len(running_jobs)))
+    # subprocess.Popen("ps -ef", shell=True)
 
 
 def do_unleash(com=[]):
@@ -81,9 +88,24 @@ def do_unleash(com=[]):
 
                        ffmpeg_url="http://%s/%s/%s/%s/playlist.m3u8" % (server, app, instance, stream)
 
-                       commandline="ffmpeg -i %s > /dev/null 2>&1" % ffmpeg_url
+                       # commandarray=["./ffmpeg", "-i", ffmpeg_url, "-f", "rawvideo", "-", ">", "/dev/null", "2>&1"]
+                       commandarray=["./ffmpeg", "-i", ffmpeg_url, "-f", "rawvideo", "-"]
+                       
+                       # get optional client number
+                       if len(com)>0:
+                           arg = com.pop(0)
+                           try:
+                               client_num = int(arg)
+                               
+                               # get optional wowza app instance
+                               if len(com)>0:
+                                   arg = com.pop(0)
+                                   instance = arg
+                               
+                           except Exception as e:
+                               syntaxerror = True
 
-                       spawn_subprocesses(commandline, client_num)
+                       spawn_subprocesses(commandarray, client_num)
                        
 
     if syntaxerror:
@@ -94,12 +116,14 @@ def do_stop(com=[]):
     global current_status
 
     current_status = 'STOPPING'
-    message = ""
+    pidlist = []
     for i in range(len(running_jobs)):
         job=running_jobs.pop()
-        message = message + "stopping [%s]\n" % job
+        pidlist.append(job)
+        
+        subprocess.Popen("kill -9 %s" % job, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     current_status = 'IDLE'
-    publish_message(message)
+    publish_message("stopped PIDs [%s]" % ",".join(pidlist))
 
 
 
