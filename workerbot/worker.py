@@ -79,7 +79,18 @@ def spawn_subprocesses(commandarray, count=1):
 def do_status(com=[]):
     global running_jobs
     global current_status
-
+    
+    running_jobs_verified=[]
+    for i in range(len(running_jobs)):
+        return_code = subprocess.call("ps -o pid= -p %s" % running_jobs[i], shell=True)
+        if return_code == 0:
+            running_jobs_verified.append(running_jobs[i])
+    
+    running_jobs=running_jobs_verified
+    
+    if len(running_jobs) == 0:
+        current_status = 'IDLE'
+        
     publish_message ("status is %s, %d jobs running" % (current_status, len(running_jobs)))
     # subprocess.Popen("ps -ef", shell=True)
 
