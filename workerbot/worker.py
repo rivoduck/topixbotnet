@@ -59,9 +59,6 @@ def spawn_subprocesses(commandarray, count=1):
     global current_status
 
     if current_status == 'IDLE':
-        message = "going to run %d instances of command [%s]" % (count, command)
-        publish_message(message)
-
         current_status = 'STARTING'
         for i in range(count):
             # running_jobs.append("job %d" % i)
@@ -135,17 +132,19 @@ def do_unleash(com=[]):
 def do_stop(com=[]):
     global running_jobs
     global current_status
-
-    current_status = 'STOPPING'
-    pidlist = []
-    for i in range(len(running_jobs)):
-        job=running_jobs.pop()
-        pidlist.append(job)
+    if current_status == "STARTED":
+        current_status = 'STOPPING'
+        pidlist = []
+        for i in range(len(running_jobs)):
+            job=running_jobs.pop()
+            pidlist.append(job)
         
-        subprocess.Popen("kill -9 %s" % job, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    current_status = 'IDLE'
-    publish_message("stopped PIDs [%s]" % ",".join(pidlist))
-
+            subprocess.Popen("kill -9 %s" % job, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        current_status = 'IDLE'
+        publish_message("stopped PIDs [%s]" % ",".join(pidlist))
+    else:
+        message = "worker status is %s. Cannot stop jobs" % current_status
+        publish_message(message)
 
 
 
