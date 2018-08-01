@@ -1,7 +1,8 @@
 import pika
 import subprocess
 import os
-
+from time import sleep
+from random import randint
 
 exch_command_broadcast = "command_broadcast"
 queue_status_report = "status_report"
@@ -57,12 +58,22 @@ def publish_message(message):
 def spawn_subprocesses(commandarray, count=1):
     global running_jobs
     global current_status
-
+    
+    start_delay_sec=20
+    
     if current_status == 'IDLE':
         current_status = 'STARTING'
+        
         for i in range(count):
             # running_jobs.append("job %d" % i)
             
+            delay=start_delay_sec/count
+            if delay < 1:
+                delay=1
+            
+            delay=int(round(delay))
+            
+            sleep(randint(1,delay))
             process = subprocess.Popen(commandarray, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
             running_jobs.append(str(process.pid))
