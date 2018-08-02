@@ -74,7 +74,8 @@ def spawn_subprocesses(commandarray, count=1):
             delay=int(round(delay))
             
             sleep(randint(1,delay))
-            process = subprocess.Popen(commandarray, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            #process = subprocess.Popen(commandarray, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            process = subprocess.Popen(commandarray, shell=False, stdout=subprocess.DEVNULL)
             
             running_jobs.append(str(process.pid))
             
