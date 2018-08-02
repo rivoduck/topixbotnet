@@ -130,8 +130,8 @@ def do_unleash(com=[]):
 
                        ffmpeg_url="http://%s/%s/%s/%s/playlist.m3u8" % (server, app, instance, stream)
 
-                       # commandarray=["./ffmpeg", "-i", ffmpeg_url, "-f", "rawvideo", "-", ">", "/dev/null", "2>&1"]
-                       commandarray=["./ffmpeg", "-re", "-i", ffmpeg_url, "-f", "rawvideo", "-"]
+                       #commandarray=["./ffmpeg", "-re", "-i", ffmpeg_url, "-f", "rawvideo", "-"]
+                       commandarray=["./ffmpeg", "-re", "-i", ffmpeg_url, "-f", "null", "-"]
 
                        # get optional client number
                        if len(com)>0:
